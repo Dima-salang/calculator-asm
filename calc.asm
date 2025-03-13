@@ -14,6 +14,7 @@
     newLine DB 0DH,0AH, '$'     ; New line string
     msgNotDigitErr DB 0DH, 0AH, 'Please enter a valid digit [0-9]!$'
     msgInvalidYN DB 0DH, 0AH, 'Please enter a valid answer: (Y/N)$'
+	msgOverflow DB 0DH, 0AH, 'Error: Overflow occurred!$'
 
     num1 DW ?      ; First number storage
     num2 DW ?      ; Second number storage
