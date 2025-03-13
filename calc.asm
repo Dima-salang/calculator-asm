@@ -6,7 +6,7 @@
     msg2 DB 0DH,0AH, 'Enter operator (+, -, *, /, %, ^): $'
     msg3 DB 0DH,0AH, 'Enter second number: $'
     msg4 DB 0DH,0AH, 'Result: $'
-    msgErr DB 0DH,0AH, 'Error: Division by zero!$'
+    msgDivErr DB 0DH,0AH, 'Error: Division by non-positive or overflowing number!$'
     msgInv DB 0DH,0AH, 'Error: Invalid operator!$'
     msgCont DB 0DH,0AH, 'Continue with this result? (Y/N): $'
     msgWelcome DB 'Simple Calculator - Press ESC anytime to exit', 0DH,0AH, '$'
@@ -368,14 +368,17 @@ Calculate PROC
 
 DoAdd:
     ADD AX, BX    ; Perform Addition
+	JO OverflowError     ; Detect Signed Overflow (for values > 32,767)
     JMP StoreResult
 
 DoSub:
     SUB AX, BX    ; Perform Subtraction
+	JO OverflowError    ; Jump if Overflow occurs
     JMP StoreResult
 
 DoMul:
     IMUL BX       ; Perform Multiplication
+	JO OverflowError    ; Jump if Overflow occurs
     JMP StoreResult
 
 DoDiv:
@@ -409,6 +412,7 @@ PowerLoop:
     CMP CX, 0     ; Check if done
     JE StoreResult
     IMUL BX       ; Multiply AX by the base
+	JO OverflowError    ; Overflow check
     DEC CX        ; Decrement counter
     JMP PowerLoop
     
@@ -417,11 +421,25 @@ PowerZero:
     JMP StoreResult
 
 ErrorDiv:
-    MOV DX, OFFSET msgErr
+    MOV DX, OFFSET msgDivErr
     MOV AH, 09H
     INT 21H
+ 
+	JMP Retry
 
-    ; output a new line
+OverflowError:
+    MOV DX, OFFSET msgOverflow
+    MOV AH, 09h
+    INT 21h
+	
+	JMP Retry
+	
+StoreResult:
+    MOV result, AX
+    RET
+
+Retry:
+	; output a new line
     MOV DX, OFFSET newLine
     MOV AH, 09H
     INT 21H
@@ -429,12 +447,9 @@ ErrorDiv:
     ; check if current reading is at first or second number
     CMP resumeReadNum, 1
     JE ReadFirstNumber
-
+    
     JMP ReadSecondNumber
 
-StoreResult:
-    MOV result, AX
-    RET
 Calculate ENDP
 
 ;--------------------------------------------------
