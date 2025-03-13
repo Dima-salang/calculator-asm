@@ -273,12 +273,25 @@ ReadNumExit:      ; Renamed from ExitProgram
     INT 21H
 
 EndRead:
-    MOV AX, BX    ; Move final result to AX
-    
+    ; Initialize DI to the max safe limit (positive or negative)
+    MOV DI, 32767     ; Max positive limit
+    CMP isNegative, 1
+    JNE SkipNegCheck
+    MOV DI, 32768     ; Max negative limit for 16-bit signed
+
+SkipNegCheck:
+    MOV AX, BX        ; Move the result to AX
+
+    ; Overflow detection logic
+    CMP AX, DI         ; Compare result with the max limit
+    JA OverflowError   ; Jump to error if AX exceeds the limit
+
     ; Apply negative sign if needed
     CMP isNegative, 1
     JNE ReadDone
-    NEG AX        ; Convert to negative
+    NEG AX             ; Convert to negative
+    CMP AX, -32768     ; Ensure it stays within signed range
+    JB OverflowError    ; Jump if result goes below -32768
     
 ReadDone:
     RET
